@@ -8,7 +8,10 @@ import plotly.graph_objects as go
 
 dash.register_page(__name__, path="/page-1")
 # importing the data
-df=pd.read_csv('/Users/praveen/Desktop/APO_DASH/Data_dash_recovery.csv')
+df=pd.read_excel('https://docs.google.com/spreadsheets/d/1fJ_8PMI9BLrZaLinmL9pwWxL-yLiixXZ/export?format=xlsx')
+# )
+# df=pd.read_excel('/Users/praveen/Desktop/APO_DASH/Data_dash_recovery.xlsx')
+# df=pd.read_csv('/Users/praveen/Desktop/APO_DASH/Data_dash_recovery.csv')
 # filling the NaN value to zero just for instance
 df=df.fillna(0)
 # layout of the page
@@ -45,7 +48,7 @@ grid=dag.AgGrid(
 
 
 layout = dbc.Container(
-    [dbc.Row(dcc.Dropdown(df['COLOR NAME'].unique(),multi=True,value=df['COLOR NAME'].unique()[0],id='dropdown')),
+    [dbc.Row(dcc.Dropdown(df['COLOR NAME'].unique(),multi=True,value=df['COLOR NAME'].unique()[0:2],id='dropdown')),
         dbc.Row(
             [ dbc.Col(card_recovery,className="d-flex align-items-stretch" ,style={'margin-bottom': '20px'}),
             dbc.Col(card_quantity,className="d-flex align-items-stretch",style={'margin-bottom': '20px'}),  # Second card in its own row  # First card in its own row
@@ -66,7 +69,7 @@ layout = dbc.Container(
 )
 def update(dropdown_value):
     dff=df[df['COLOR NAME'].isin(dropdown_value)]
-    fig=px.histogram(dff,x=dff['APO NO'],y=dff['TOTAL  RECOVERY CBM FOR BLOCK']).update_layout(template="plotly_dark")
+    fig=px.histogram(dff,x=dff['APO NO'],y=dff['TOTAL  RECOVERY CBM FOR BLOCK']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
     rec=int(sum(dff['CUTTING QTY'])/sum(dff['CBM']))
     dispactchqty=dff['DISPATCHED QTY'].sum()
     instockqty=dff['CUTTING QTY'].sum()-dispactchqty
