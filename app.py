@@ -24,7 +24,7 @@ CONTENT_STYLE = {
     'overflow':"auto"
 }
 app.layout = dbc.Container(
-    [
+    [ dcc.Location(id='url'),
    
         # Sidebar with buttons
         dbc.Row(
@@ -54,7 +54,18 @@ app.layout = dbc.Container(
         ),
     ],
     # fluid=False,
+
 )
+@app.callback(
+    Output("url", "pathname"),
+    Input("url", "pathname"),
+    prevent_initial_call=True
+)
+def redirect_to_page_1(pathname):
+    if pathname == "/":
+        return "/page-1"
+    return pathname
+
 if __name__ == "__main__":
     app.run_server(debug=True)
 
