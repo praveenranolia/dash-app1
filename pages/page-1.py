@@ -20,7 +20,7 @@ df=df.fillna(0)
 # card 1 'Recovery'
 card_recovery = dbc.Card(
     dbc.CardBody([
-        html.H3('RECOVERY'),
+        html.H3('AVG. RECOVERY'),
         html.P('Recovery of the blocks cutting QTY SQF/CBM'),
         html.Div(id='recovery', children=0,style={'font-size':'50px'}),
     ]),
@@ -30,9 +30,9 @@ card_recovery = dbc.Card(
 card_quantity = dbc.Card(
     dbc.CardBody([
         html.H3('QUANTITY'),
-        html.P('Dispatched: ', style={"fontWeight": "bold"}),
+        html.P('Dispatched SQF: ', style={"fontWeight": "bold"}),
         html.Div(id='dispatched', children='0', style={"marginBottom": "10px",'font-size':'40px'}),
-        html.P('In Stocks: ', style={"fontWeight": "bold"}),
+        html.P('In Stocks SQF: ', style={"fontWeight": "bold"}),
         html.Div(id='in_stocks', children='0',style={'font-size':'40px'}),
     ]),
     style={"width": "100%",'height':'100%'}
