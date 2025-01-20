@@ -8,11 +8,11 @@ import plotly.graph_objects as go
 
 dash.register_page(__name__, path="/page-1")
 # importing the data
-# df=pd.read_excel('https://docs.google.com/spreadsheets/d/1fJ_8PMI9BLrZaLinmL9pwWxL-yLiixXZ/export?format=xlsx')
+df=pd.read_excel('https://docs.google.com/spreadsheets/d/1qSho2LLqIBMhKDCcGC_7vLkUc7rNa012o8Tvh37MkwU/export?format=xlsx')
 
 # )
 # df=pd.read_excel('/Users/praveen/Desktop/APO_DASH/Data_dash_recovery.xlsx')
-df=pd.read_excel('/Users/praveen/Desktop/APO_DASH/RECOVERY.xlsx')
+# df=pd.read_excel('/Users/praveen/Desktop/APO_DASH/RECOVERY.xlsx')
 # df=pd.read_csv('/Users/praveen/Desktop/APO_DASH/RECOVERY.csv')
 # filling the NaN value to zero just for instance
 df=df.fillna(0)
