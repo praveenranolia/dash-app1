@@ -21,7 +21,7 @@ df=df.fillna(0)
 card_recovery = dbc.Card(
     dbc.CardBody([
         html.H3('AVG. RECOVERY'),
-        html.P('Recovery of the blocks cutting QTY SQF/CBM'),
+        html.P('(dispatched +instock)inSQF/CBM of block'),
         html.Div(id='recovery', children=0,style={'font-size':'50px'}),
     ]),
     style={"width": "100%",'height':'100%'}  # Ensure card uses full width of its column
@@ -40,7 +40,7 @@ card_quantity = dbc.Card(
 grid=dag.AgGrid(
     id="table",
     rowData=df.to_dict("records"),
-    columnDefs=[{"field": i,"cellDataType" : 'text'} for i in df.columns],
+    columnDefs=[{"field": i,"cellDataType" : 'text'} for i in df.columns[:14]],
     # columnDefs=[{"field":'BLOCK NO',"cellDataType" : 'text' }],
     defaultColDef={"filter": True, "sortable": True, "resizable": True},
     className="ag-theme-alpine-dark",
