@@ -41,6 +41,7 @@ grid2=dag.AgGrid(
     # columnDefs=[{"field":'BLOCK NO',"cellDataType" : 'text' }],
     defaultColDef={"filter": True, "sortable": True, "resizable": True},
     className="ag-theme-alpine-dark",
+    dashGridOptions={"pagination": True, "animateRows": False},
 )
 layout = dbc.Container(
     [dbc.Row(dcc.Dropdown(df2['COLOR NAME'].unique(),multi=True,value=df2['COLOR NAME'].unique()[0:2],id='dropdown1')),
