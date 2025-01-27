@@ -34,6 +34,19 @@ card_pie_chart=dbc.Card(
     ])
 
 )
+# this is the card for the selective blocks 
+block_sales_card=dbc.Card(
+    dbc.CardBody([
+        html.P('TOTAL SALES INR :',style={"fontWeight": "bold",'font-size':'20px'}),
+        html.Div(id='Total-block-sales',children='0',style={"marginBottom": "30px","fontWeight": "bold",'font-size':'20px'}),
+        html.P('Total GST INR:',style={"fontWeight": "bold",'font-size':'20px'}),
+        html.Div(id='block-gst',children='0',style={"marginBottom": "30px","fontWeight": "bold",'font-size':'20px'}),
+        html.P('TRANSPORT INR:',style={"fontWeight": "bold",'font-size':'20px'}),
+        html.Div(id='block-transport',children='0',style={"fontWeight": "bold",'font-size':'20px'}),
+
+    ]),
+    style={"width": "100%",'height':'100%'}
+)
 grid2=dag.AgGrid(
     id="table2",
     rowData=df2.to_dict("records"),
@@ -49,11 +62,21 @@ layout = dbc.Container(
             [ dbc.Col(card_sales,className="d-flex align-items-stretch" ,style={'margin-bottom': '20px'}),
             dbc.Col(card_pie_chart,style={'margin-bottom': '20px'}),  # Second card in its own row  # First card in its own row
     ]),
+    dbc.Row([dbc.Col([
+        dcc.Dropdown(id='blockselection2',placeholder='select the blocks',multi=True,value=df2['BLOCK NO'].unique()[0:3]),
+        block_sales_card]
+
+    ),
+             dbc.Col(dcc.Graph(figure={},id='minigraph2'))]),
+    
+
     dbc.Row(dcc.Graph(figure={},id='page2chart'),style={
         # "width": "2000px",  # Set a large width for the graph container
         "overflow-x": "auto",  # Enable horizontal scrolling
         "white-space": "nowrap"  # Prevent graph from wrapping
     }),
+    
+    
     grid2
     ],
     fluid=True
@@ -64,15 +87,33 @@ layout = dbc.Container(
     Output(component_id='gstamount',component_property='children'),
     Output(component_id='transportamount',component_property='children'),
     Output(component_id='page2chart',component_property='figure'),
+    Output(component_id='blockselection2',component_property='options'),
     Input(component_id='dropdown1',component_property='value')
 )
 def func(dropdown_value1):
     dff2=df2[df2['COLOR NAME'].isin(dropdown_value1)]
-    amount=sum(dff2['AMOUNT'])
-    total_sales_amount=sum(dff2['TOTAL VALUE'])
-    total_gst=sum(dff2['GST'])
+    amount=round(sum(dff2['AMOUNT']),2)
+    total_sales_amount=round(sum(dff2['TOTAL VALUE']),2)
+    total_gst=round(sum(dff2['GST']),2)
+    page2_blocks_value=dff2['BLOCK NO']
     # total_transport=sum(dff2['TRANSPORT CHARGES PER BLOCK'])
     total_transport=0
     fig1=px.pie(values=[amount,total_gst,total_transport],labels=['AMOUNT','GST','TRANSPORT'],hole=0.4,names=['AMOUNT',"GST",'TRANSPORT']).update_layout(template="plotly_dark")
     histochart=px.histogram(dff2,x=dff2['BLOCK NO'],y=dff2['TOTAL VALUE']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
-    return fig1,total_sales_amount,total_gst,total_transport,histochart
+    return fig1,total_sales_amount,total_gst,total_transport,histochart,page2_blocks_value
+
+@callback(
+    Output(component_id='Total-block-sales',component_property='children'),
+    Output(component_id='block-gst',component_property='children'),
+    Output(component_id='minigraph2',component_property='figure'),
+    Input(component_id='blockselection2',component_property='value')
+)
+def blockdropdown(block_value):
+    # print(block_value,[type(i) for i in block_value ])
+    block_df2=df2[df2['BLOCK NO'].isin(block_value)]
+    # print(block_df)
+    total_sales_amount=round(sum(block_df2['TOTAL VALUE']),2)
+    total_gst=round(sum(block_df2['GST']),2)
+    page2fig2=px.histogram(block_df2,x=block_df2['BLOCK NO'],y=[block_df2['TOTAL VALUE'],block_df2['GST']]).update_layout(template="plotly_dark",xaxis=dict(type='category'))
+    return total_sales_amount,total_gst,page2fig2
+
