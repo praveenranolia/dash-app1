@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 
 dash.register_page(__name__, path="/page-2")
 # importing the data
-df2=pd.read_excel('https://docs.google.com/spreadsheets/d/1qSho2LLqIBMhKDCcGC_7vLkUc7rNa012o8Tvh37MkwU/export?format=xlsx')
+df2=pd.read_excel('https://docs.google.com/spreadsheets/d/1NbzklkOrIH4b4ayI-xu_tBN3mqYd0dDrS_Vz7hCmiAo/export?/format=xlsx')
 
 # )
 # df2=pd.read_excel('/Users/praveen/Desktop/APO_DASH/Data_dash_recovery.xlsx')
@@ -50,7 +50,7 @@ block_sales_card=dbc.Card(
 grid2=dag.AgGrid(
     id="table2",
     rowData=df2.to_dict("records"),
-    columnDefs=[{"field": i,"cellDataType" : 'text'} for i in df2.columns[[1,2,13,14,15,16,17,18]]],
+    columnDefs=[{"field": i,"cellDataType" : 'text'} for i in df2.columns[[1,2,29,30,31,32,33,34,35]]],
     # columnDefs=[{"field":'BLOCK NO',"cellDataType" : 'text' }],
     defaultColDef={"filter": True, "sortable": True, "resizable": True},
     className="ag-theme-alpine-dark",
@@ -96,8 +96,7 @@ def func(dropdown_value1):
     total_sales_amount=round(sum(dff2['TOTAL VALUE']),2)
     total_gst=round(sum(dff2['GST']),2)
     page2_blocks_value=dff2['BLOCK NO']
-    # total_transport=sum(dff2['TRANSPORT CHARGES PER BLOCK'])
-    total_transport=0
+    total_transport=round(sum(dff2['ADJ TRANSPORT CHARGES PER BLOCK']))
     fig1=px.pie(values=[amount,total_gst,total_transport],labels=['AMOUNT','GST','TRANSPORT'],hole=0.4,names=['AMOUNT',"GST",'TRANSPORT']).update_layout(template="plotly_dark")
     histochart=px.histogram(dff2,x=dff2['BLOCK NO'],y=dff2['TOTAL VALUE']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
     return fig1,total_sales_amount,total_gst,total_transport,histochart,page2_blocks_value
@@ -106,14 +105,18 @@ def func(dropdown_value1):
     Output(component_id='Total-block-sales',component_property='children'),
     Output(component_id='block-gst',component_property='children'),
     Output(component_id='minigraph2',component_property='figure'),
+    Output(component_id='block-transport',component_property='children'),
     Input(component_id='blockselection2',component_property='value')
 )
 def blockdropdown(block_value):
+    if not block_value:
+        return "", "", go.Figure(),""
     # print(block_value,[type(i) for i in block_value ])
     block_df2=df2[df2['BLOCK NO'].isin(block_value)]
     # print(block_df)
     total_sales_amount=round(sum(block_df2['TOTAL VALUE']),2)
     total_gst=round(sum(block_df2['GST']),2)
-    page2fig2=px.histogram(block_df2,x=block_df2['BLOCK NO'],y=[block_df2['TOTAL VALUE'],block_df2['GST']]).update_layout(template="plotly_dark",xaxis=dict(type='category'))
-    return total_sales_amount,total_gst,page2fig2
+    block_transportation_amount=round(sum(block_df2['ADJ TRANSPORT CHARGES PER BLOCK']),2)
+    page2fig2=px.histogram(block_df2,x=block_df2['BLOCK NO'],y=[block_df2['TOTAL VALUE'],block_df2['GST'],block_df2['ADJ TRANSPORT CHARGES PER BLOCK']]).update_layout(template="plotly_dark",xaxis=dict(type='category'))
+    return total_sales_amount,total_gst,page2fig2,block_transportation_amount
 
