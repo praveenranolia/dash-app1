@@ -8,12 +8,8 @@ import plotly.graph_objects as go
 
 dash.register_page(__name__, path="/page-1")
 # importing the data
-df=pd.read_excel('https://docs.google.com/spreadsheets/d/1qSho2LLqIBMhKDCcGC_7vLkUc7rNa012o8Tvh37MkwU/export?format=xlsx')
-
-# )
-# df=pd.read_excel('/Users/praveen/Desktop/APO_DASH/Data_dash_recovery.xlsx')
-# df=pd.read_excel('/Users/praveen/Desktop/APO_DASH/RECOVERY.xlsx')
-# df=pd.read_csv('/Users/praveen/Desktop/APO_DASH/RECOVERY.csv')
+df=pd.read_excel('https://docs.google.com/spreadsheets/d/1NbzklkOrIH4b4ayI-xu_tBN3mqYd0dDrS_Vz7hCmiAo/export?/format=xlsx')
+# df=pd.read_excel('https://docs.google.com/spreadsheets/d/1qSho2LLqIBMhKDCcGC_7vLkUc7rNa012o8Tvh37MkwU/export?format=xlsx')
 # filling the NaN value to zero just for instance
 df=df.fillna(0)
 # layout of the page
@@ -55,15 +51,17 @@ block_card=dbc.Card(
 grid=dag.AgGrid(
     id="table",
     rowData=df.to_dict("records"),
-    columnDefs=[{"field": i,"cellDataType" : 'text'} for i in df.columns[:14]],
+    columnDefs=[{"field": i,"cellDataType" : 'text'} for i in df.columns[:28]],
     # columnDefs=[{"field":'BLOCK NO',"cellDataType" : 'text' }],
     defaultColDef={"filter": True, "sortable": True, "resizable": True},
     className="ag-theme-alpine-dark",
-    dashGridOptions={"pagination": True, "animateRows": False},
+    dashGridOptions={"pagination": True, "animateRows": False,"filterModel":"server",
+    "sortingMode":"server"},
 )
 # dynamic chart for APO recovery
 layout = dbc.Container(
-    [dbc.Row(dcc.Dropdown(df['COLOR NAME'].unique(),multi=True,value=df['COLOR NAME'].unique()[0:2],id='dropdown')),
+    [dbc.Row(dcc.Dropdown(df['COLOR NAME'].unique(),placeholder='select the colors',multi=True,id='dropdown')),
+     dbc.Row(dcc.Dropdown(id='cutterselection',placeholder='select the cutter')),
         dbc.Row(
             [ dbc.Col(card_recovery,className="d-flex align-items-stretch" ,style={'margin-bottom': '20px'}),
             dbc.Col(card_quantity,className="d-flex align-items-stretch",style={'margin-bottom': '20px'}),  # Second card in its own row  # First card in its own row
@@ -86,37 +84,72 @@ layout = dbc.Container(
     fluid=True
 )
 @callback(
+    # Output(component_id='graph1',component_property='figure'),
+    # Output(component_id='recovery',component_property='children'),
+    # Output(component_id='dispatched',component_property='children'),
+    # Output(component_id='in_stocks',component_property='children'),
+    # Output(component_id='blockselection',component_property='options'),
+    Output(component_id='cutterselection',component_property='options'),
+    Input(component_id='dropdown',component_property='value'),
+    prevent_initial_call= True
+    
+)
+def update(dropdown_value):
+    if not dropdown_value:
+        return []
+    dff=df[df['COLOR NAME'].isin(dropdown_value)]
+    cutter_methods=dff['CUTTING METHOD'].unique()
+    # fig=px.histogram(dff,x=dff['BLOCK NO'],y=dff['RECOVERY']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
+    # rec=round(sum(dff['DISPATCHED QTY']+dff['SFT FOR BAL SLABS'])/sum(dff['NEW CBM']),2)
+    # values=dff['BLOCK NO']
+    # dispactchqty=round(dff['DISPATCHED QTY'].sum(),2)
+    # instockqty=round(dff['CUTTING QTY'].sum()-dispactchqty,2)
+    return cutter_methods
+
+@callback(
     Output(component_id='graph1',component_property='figure'),
     Output(component_id='recovery',component_property='children'),
     Output(component_id='dispatched',component_property='children'),
     Output(component_id='in_stocks',component_property='children'),
     Output(component_id='blockselection',component_property='options'),
-    Input(component_id='dropdown',component_property='value')
+    Input(component_id='dropdown',component_property='value'),
+    Input(component_id='cutterselection',component_property='value'),
+    prevent_initial_call=True  
 )
-def update(dropdown_value):
-    dff=df[df['COLOR NAME'].isin(dropdown_value)]
-    fig=px.histogram(dff,x=dff['BLOCK NO'],y=dff['Recovery']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
-    rec=round(sum(dff['DISPATCHED QTY']+dff['SFT FOR BAL SLABS'])/sum(dff['CBM']),2)
-    values=dff['BLOCK NO']
-    dispactchqty=round(dff['DISPATCHED QTY'].sum(),2)
-    instockqty=round(dff['CUTTING QTY'].sum()-dispactchqty,2)
+def func2(colors,cutters):
+    if not colors or not cutters:
+        return go.Figure(), "", "", "", []
+    # print(colors,cutters)
+     
+    dff2=df[(df['COLOR NAME'].isin(colors)) & (df['CUTTING METHOD']==cutters)]
+    print(dff2)
+    values=dff2['BLOCK NO']
+    fig=px.histogram(dff2,x=dff2['BLOCK NO'],y=dff2['RECOVERY']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
+    rec= rec=round(sum(dff2['DISPATCHED QTY']+dff2['SFT FOR BAL SLABS'])/sum(dff2['ADJ CBM']),2)
+    dispactchqty=round(dff2['DISPATCHED QTY'].sum(),2)
+    instockqty=round(dff2['CUTTING QTY'].sum()-dispactchqty,2)
     return fig,rec,dispactchqty,instockqty,values
+
+
 
 @callback(
     Output(component_id='block-recovery',component_property='children'),
     Output(component_id='block-dispatched',component_property='children'),
     Output(component_id='block-instocks',component_property='children'),
     Output(component_id='minigraph',component_property='figure'),
-    Input(component_id='blockselection',component_property='value')
+    Input(component_id='blockselection',component_property='value'),
+    prevent_initial_call=True
 )
 def blockdropdown(block_value):
+    if not block_value:
+        return "", "", "", go.Figure()
     # print(block_value,[type(i) for i in block_value ])
     block_df=df[df['BLOCK NO'].isin(block_value)]
     # print(block_df)
-    block_rec=round(sum(block_df['DISPATCHED QTY']+block_df['SFT FOR BAL SLABS'])/sum(block_df['CBM']),2)
+    block_rec=round(sum(block_df['DISPATCHED QTY']+block_df['SFT FOR BAL SLABS'])/sum(block_df['ADJ CBM']),2)
     block_dispatch=round(block_df['DISPATCHED QTY'].sum(),2)
     block_instocks=round(block_df['CUTTING QTY'].sum()-block_dispatch,2)
-    fig2=px.histogram(block_df,x=block_df['BLOCK NO'],y=block_df['Recovery']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
+    fig2=px.histogram(block_df,x=block_df['BLOCK NO'],y=block_df['RECOVERY']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
     return block_rec,block_dispatch,block_instocks,fig2
 
 
