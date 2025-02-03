@@ -30,10 +30,16 @@ card_sales= dbc.Card(
 card_pie_chart=dbc.Card(
     dbc.CardBody([
         html.H3('SALES'),
-        dcc.Graph(id='salespiechart',figure={})
+        dcc.Graph(id='salespiechart',figure={},
+                  style={'height':"400px",'width':'400px'})
     ])
 
 )
+# tab-selection for full and partial dispatched
+tabs2 = dbc.Tabs([
+    dbc.Tab(label="All Dispatched", tab_id="all_dispatched2"),
+    dbc.Tab(label="Partial Dispatched", tab_id="partial_dispatched2"),
+], id="tab_selection2", active_tab="all_dispatched2")
 # this is the card for the selective blocks 
 block_sales_card=dbc.Card(
     dbc.CardBody([
@@ -58,6 +64,7 @@ grid2=dag.AgGrid(
 )
 layout = dbc.Container(
     [dbc.Row(dcc.Dropdown(df2['COLOR NAME'].unique(),multi=True,value=df2['COLOR NAME'].unique()[0:2],id='dropdown1')),
+     tabs2,
         dbc.Row(
             [ dbc.Col(card_sales,className="d-flex align-items-stretch" ,style={'margin-bottom': '20px'}),
             dbc.Col(card_pie_chart,style={'margin-bottom': '20px'}),  # Second card in its own row  # First card in its own row
@@ -88,10 +95,17 @@ layout = dbc.Container(
     Output(component_id='transportamount',component_property='children'),
     Output(component_id='page2chart',component_property='figure'),
     Output(component_id='blockselection2',component_property='options'),
-    Input(component_id='dropdown1',component_property='value')
+    Input(component_id='dropdown1',component_property='value'),
+    Input(component_id='tab_selection2',component_property='active_tab')
 )
-def func(dropdown_value1):
+def func(dropdown_value1,selected_tab):
     dff2=df2[df2['COLOR NAME'].isin(dropdown_value1)]
+    if selected_tab == "all_dispatched2":
+        dff2 = dff2[dff2['BALANCE SLABS'] == 0]  # all dispatched data
+        print('thiS is for all dispatched',dff2[['BALANCE SLABS','AMOUNT']])
+    else:
+        dff2=dff2[dff2['BALANCE SLABS'] != 0] 
+        print('this is for partial dispatched',dff2[['BALANCE SLABS','AMOUNT']])
     amount=round(sum(dff2['AMOUNT']),2)
     total_sales_amount=round(sum(dff2['TOTAL VALUE']),2)
     total_gst=round(sum(dff2['GST']),2)

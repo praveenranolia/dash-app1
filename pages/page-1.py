@@ -14,8 +14,11 @@ df=pd.read_excel('https://docs.google.com/spreadsheets/d/1NbzklkOrIH4b4ayI-xu_tB
 df=df.fillna(0)
 # layout of the page
 # card 1 'Recovery'
-
-
+# Tabs for selection of FULL OR PARTIAL DISPATCHED 
+tabs = dbc.Tabs([
+    dbc.Tab(label="All Dispatched", tab_id="all_dispatched"),
+    dbc.Tab(label="Partial Dispatched", tab_id="partial_dispatched"),
+], id="tab_selection", active_tab="all_dispatched")
 card_recovery = dbc.Card(
     dbc.CardBody([
         html.H3('AVG. RECOVERY'),
@@ -62,6 +65,7 @@ grid=dag.AgGrid(
 layout = dbc.Container(
     [dbc.Row(dcc.Dropdown(df['COLOR NAME'].unique(),placeholder='select the colors',multi=True,id='dropdown')),
      dbc.Row(dcc.Dropdown(id='cutterselection',placeholder='select the cutter')),
+     tabs,
         dbc.Row(
             [ dbc.Col(card_recovery,className="d-flex align-items-stretch" ,style={'margin-bottom': '20px'}),
             dbc.Col(card_quantity,className="d-flex align-items-stretch",style={'margin-bottom': '20px'}),  # Second card in its own row  # First card in its own row
@@ -114,20 +118,26 @@ def update(dropdown_value):
     Output(component_id='blockselection',component_property='options'),
     Input(component_id='dropdown',component_property='value'),
     Input(component_id='cutterselection',component_property='value'),
+    Input(component_id='tab_selection',component_property='active_tab'),
     prevent_initial_call=True  
 )
-def func2(colors,cutters):
+def func2(colors,cutters,selected_tab):
     if not colors or not cutters:
         return go.Figure(), "", "", "", []
     # print(colors,cutters)
      
     dff2=df[(df['COLOR NAME'].isin(colors)) & (df['CUTTING METHOD']==cutters)]
-    print(dff2)
     values=dff2['BLOCK NO']
     fig=px.histogram(dff2,x=dff2['BLOCK NO'],y=dff2['RECOVERY']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
+    if selected_tab == "all_dispatched":
+        dff2 = dff2[dff2['BALANCE SLABS'] == 0]  # all dispatched data
+        print('this is for all dipatched page1 ',dff2)
+    else:
+        dff2 = dff2[dff2['BALANCE SLABS'] != 0]  # partial dispatched data
     rec= rec=round(sum(dff2['DISPATCHED QTY']+dff2['SFT FOR BAL SLABS'])/sum(dff2['ADJ CBM']),2)
     dispactchqty=round(dff2['DISPATCHED QTY'].sum(),2)
-    instockqty=round(dff2['CUTTING QTY'].sum()-dispactchqty,2)
+    # instockqty=round(dff2['CUTTING QTY'].sum()-dispactchqty,2)
+    instockqty=round(dff2['SFT FOR BAL SLABS'].sum(),2)
     return fig,rec,dispactchqty,instockqty,values
 
 
@@ -138,6 +148,7 @@ def func2(colors,cutters):
     Output(component_id='block-instocks',component_property='children'),
     Output(component_id='minigraph',component_property='figure'),
     Input(component_id='blockselection',component_property='value'),
+    
     prevent_initial_call=True
 )
 def blockdropdown(block_value):
