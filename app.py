@@ -4,7 +4,7 @@ from dash import Dash, html, dcc, Input, Output, State, callback, Patch
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 import plotly.graph_objects as go
-app = Dash(external_stylesheets=[dbc.themes.CYBORG],use_pages=True)
+app = Dash(external_stylesheets=[dbc.themes.CYBORG],use_pages=True,suppress_callback_exceptions=True)
 server=app.server
 # creating the object for side bar
 SIDEBAR_STYLE = {
@@ -68,4 +68,3 @@ def redirect_to_page_1(pathname):
 
 if __name__ == "__main__":
     app.run_server(debug=True)
-

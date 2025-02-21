@@ -131,7 +131,7 @@ def func2(colors,cutters,selected_tab):
     fig=px.histogram(dff2,x=dff2['BLOCK NO'],y=dff2['RECOVERY']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
     if selected_tab == "all_dispatched":
         dff2 = dff2[dff2['BALANCE SLABS'] == 0]  # all dispatched data
-        print('this is for all dipatched page1 ',dff2)
+        # print('this is for all dipatched page1 ',dff2)
     else:
         dff2 = dff2[dff2['BALANCE SLABS'] != 0]  # partial dispatched data
     rec= rec=round(sum(dff2['DISPATCHED QTY']+dff2['SFT FOR BAL SLABS'])/sum(dff2['ADJ CBM']),2)
