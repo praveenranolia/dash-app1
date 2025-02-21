@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 import plotly.graph_objects as go
 from datetime import date
-from sqlalchemy import create_engine
+# from sqlalchemy import create_engine
 
 dash.register_page(__name__, path="/page-3")
 # engine =create_engine('postgresql://postgres:4248@localhost:5432/postgres')
