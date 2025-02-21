@@ -102,10 +102,10 @@ def func(dropdown_value1,selected_tab):
     dff2=df2[df2['COLOR NAME'].isin(dropdown_value1)]
     if selected_tab == "all_dispatched2":
         dff2 = dff2[dff2['BALANCE SLABS'] == 0]  # all dispatched data
-        print('thiS is for all dispatched',dff2[['BALANCE SLABS','AMOUNT']])
+        # print('thiS is for all dispatched',dff2[['BALANCE SLABS','AMOUNT']])
     else:
         dff2=dff2[dff2['BALANCE SLABS'] != 0] 
-        print('this is for partial dispatched',dff2[['BALANCE SLABS','AMOUNT']])
+        # print('this is for partial dispatched',dff2[['BALANCE SLABS','AMOUNT']])
     amount=round(sum(dff2['AMOUNT']),2)
     total_sales_amount=round(sum(dff2['TOTAL VALUE']),2)
     total_gst=round(sum(dff2['GST']),2)
