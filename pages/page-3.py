@@ -1,5 +1,8 @@
 import dash
 import pandas as pd
+import os
+import tempfile
+import json
 from dash import html,dcc, Input, Output, State, callback, Patch
 import plotly.express as px
 import dash_bootstrap_components as dbc
@@ -18,7 +21,21 @@ data3=pd.read_excel('https://docs.google.com/spreadsheets/d/1LXlNqgl_Dy9nt9gocO8
 scopes=[
     "https://www.googleapis.com/auth/spreadsheets"
 ]
-creds=Credentials.from_service_account_file("credentials.json",scopes=scopes)
+# creds=Credentials.from_service_account_file("credentials.json",scopes=scopes)
+google_creds = os.getenv("GOOGLE_CREDENTIALS")
+if google_creds:
+    creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
+
+    # Create a temporary file to store the credentials
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp:
+        json.dump(creds_dict, temp)
+        temp.flush()
+        credentials_path = temp.name  # Store temp file path
+
+    # Use the temporary file instead of a local credentials.json file
+    creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
+else:
+    raise ValueError("GOOGLE_CREDENTIALS environment variable is not set.")
 client=gspread.authorize(creds)
 sheet_id="1NvnuOaY8ZAZO_vgZhgessJO5-X6tUbEx0f_ybRJ-3U4"
 cost_sheet_id="1iONtXc1AGdatKP9fQDBOKOhVZTUgDkw6Y7_uhNYCJcg"
