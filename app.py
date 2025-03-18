@@ -37,7 +37,7 @@ app.layout = dbc.Container(
                         [
                             dbc.NavLink("Recovery", href="/page-1", className="mb-2", active="exact"),
                             dbc.NavLink("Sales", href="/page-2", className="mb-2", active="exact"),
-                            dbc.NavLink("Consumeables", href="/page-3", className="mb-2", active="exact"),
+                            dbc.NavLink("Costing", href="/page-3", className="mb-2", active="exact"),
                         ],
                         vertical=True,
                         pills=True,
