@@ -91,7 +91,7 @@ def filter_data(start_date, end_date):
 def dressing_value(block, df1, df2):
     # Fetch block color and month safely
     block_data = df1[df1['BLOCK NO'] == block]
-    print("this is the block_data",block_data)
+    # print("this is the block_data",block_data)
     
     if block_data.empty:
         return None, 0, None  # Return defaults if no data found
@@ -114,7 +114,7 @@ def dressing_value(block, df1, df2):
 #function to calculate the cutting qty and cutting cost and misc cost
 def cutting_value(block, df1, df2, month):
     dff1 = df1[df1['BLOCK NO'].str.contains(fr'^{block}\s*[A-Z]?$', na=False, regex=True)]
-    print("cutting_valuedfff",dff1)
+    # print("cutting_valuedfff",dff1)
 
     mws_qty = dff1[dff1['MACHINE'] == "MWS"]['AREA IN SQFT'].sum()
     no_mws_qty = dff1[dff1['MACHINE'] != "MWS"]['AREA IN SQFT'].sum()
@@ -135,7 +135,7 @@ def cutting_value(block, df1, df2, month):
     total_cost = mws_price + no_mws_price + salary
     total_area = mws_qty + no_mws_qty
 
-    print("cutting_value", total_area, total_cost, misc_cost)
+    # print("cutting_value", total_area, total_cost, misc_cost)
     
     return total_area, total_cost, misc_cost
 
@@ -164,13 +164,13 @@ def epoxy_value(block, df1, df2, month):
     
     nettingqty = dff1[dff1["TYPE OF EPOXY"] == 1204]['SLAB SFT'].sum()  # Ensure sum() for scalar value
     netting_price_series = df2[(df2['MONTH'] == month) & (df2['PROCESS'] == "NETTING")]['COST PER SFT']
-    print(netting_price_series)
+    # print(netting_price_series)
     
     if not netting_price_series.empty:
         netting_price = nettingqty * netting_price_series.values[0]  # Extract scalar value before multiplication
     else:
         netting_price = 0  # Default to zero if no cost found
-    print("this is the epoxy value",nettingqty,netting_price,epoxy_cost)
+    # print("this is the epoxy value",nettingqty,netting_price,epoxy_cost)
     
     return epoxy_cost + netting_price
 block_columns = ["BLOCK NO", "COLOUR", "CUTTING QTY", "CUTTING COST", "POLISHING COST", "EPOXY COST", "MISC COST"]
@@ -267,7 +267,7 @@ def update_values(block_no):
         block_cost_df = pd.concat([block_cost_df, pd.DataFrame([new_row])], ignore_index=True)
         
     block_cost_df["TOTAL COST"] = block_cost_df.iloc[:, 2:].sum(axis=1)
-    print(block_cost_df)
+    # print(block_cost_df)
     # page3fig2=px.histogram(block_cost_df,x='BLOCK NO',y=block_cost_df.columns[2:-1].to_list()).update_layout(template="plotly_dark",xaxis=dict(type='category'))
     # return page3fig2
     chart_df = block_cost_df[["BLOCK NO", "CUTTING QTY", "TOTAL COST"]].melt(
