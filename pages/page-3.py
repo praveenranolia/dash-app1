@@ -21,7 +21,7 @@ data3=pd.read_excel('https://docs.google.com/spreadsheets/d/1LXlNqgl_Dy9nt9gocO8
 scopes=[
     "https://www.googleapis.com/auth/spreadsheets"
 ]
-# creds=Credentials.from_service_account_file("credentials.json",scopes=scopes)
+creds=Credentials.from_service_account_file("credentials.json",scopes=scopes)
 google_creds = os.getenv("GOOGLE_CREDENTIALS")
 if google_creds:
     creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
@@ -43,28 +43,14 @@ sheet=client.open_by_key(sheet_id)
 cost_sheet=client.open_by_key(cost_sheet_id)
 costsft=cost_sheet.worksheet("COST PER UNIT").get_all_records()
 cost_df=pd.DataFrame(costsft)
-# fetching dressing data 
+def fetch_sheet_data(sheet_name):
+    data = sheet.worksheet(sheet_name).get_all_records()
+    return pd.DataFrame(data)
 
-dressing=sheet.worksheet("DRESSING").get_all_records()
-dressing_header = dressing[1]  # Second row (index 1)
-dressing_rows = dressing[2:]   # Data starts from the third row (index 2)
-dressing_df = pd.DataFrame(dressing_rows, columns=dressing_header)
-# print(dressing_df.head(2))
-# fetching cutting data
-cutting=sheet.worksheet("CUTTING").get_all_records()
-cutting_header=cutting[1]
-cutting_rows=cutting[2:]
-cutting_df=pd.DataFrame(cutting_rows,columns=cutting_header)
-#fetching polishing data
-polishing=sheet.worksheet("POLISHING AND GRINDING").get_all_records()
-polishing_header=polishing[1]
-polishing_rows=polishing[2:]
-polishing_df=pd.DataFrame(polishing_rows,columns=polishing_header)
-#fetching epoxy data
-epoxy=sheet.worksheet("EPOXY").get_all_records()
-epoxy_header=epoxy[1]
-epoxy_rows=epoxy[2:]
-epoxy_df=pd.DataFrame(epoxy_rows,columns=epoxy_header)
+dressing_df = fetch_sheet_data("DRESSING")
+cutting_df = fetch_sheet_data("CUTTING")
+polishing_df = fetch_sheet_data("POLISHING AND GRINDING")
+epoxy_df = fetch_sheet_data("EPOXY")
 data3.fillna(0)
 grid3=dag.AgGrid(
     id="table3",
@@ -88,6 +74,7 @@ issue_value=dbc.Card([
 # block_no=input("give the block no.")
 # print(block_no)
 # print(epoxy_df[epoxy_df['BLOCK NO']==block_no])
+# print("this is the cutting df",cutting_df)
 
 
 # funtion to filter the data based on date
@@ -100,13 +87,94 @@ def filter_data(start_date, end_date):
         filtered_data = data3[(data3['DATE'] >= start_date) & (data3['DATE'] <= end_date)]
         return filtered_data
     return data3  # Return full data if no date selected
-#function to calculate the dressing 
-def dressingvalue(block,dataframe1,dataframe2):
-    qty=sum(dataframe1[dataframe1['BLOCK NO']==block]["TOTAL SQM"])
-    price_per_unit=dataframe2['']
+#function to calculate the dressing cost
+def dressing_value(block, df1, df2):
+    # Fetch block color and month safely
+    block_data = df1[df1['BLOCK NO'] == block]
+    print("this is the block_data",block_data)
+    
+    if block_data.empty:
+        return None, 0, None  # Return defaults if no data found
 
+    block_colour = block_data['COLOUR'].iloc[0]
+    month = block_data['MONTH'].iloc[0]
+    
+    # Compute total square meters
+    qty = block_data["TOTAL SQM"].sum()
 
+    def get_cost(item):
+        """Fetches cost per SFT safely, returns 0 if not found."""
+        cost_series = df2[(df2['MONTH'] == month) & (df2['ITEM'] == item)]['COST PER SFT']
+        return cost_series.iloc[0] if not cost_series.empty else 0
 
+    # Calculate costs
+    price = qty * get_cost("MONOWIRE SAW")
+
+    return block_colour, price, month
+#function to calculate the cutting qty and cutting cost and misc cost
+def cutting_value(block, df1, df2, month):
+    dff1 = df1[df1['BLOCK NO'].str.contains(fr'^{block}\s*[A-Z]?$', na=False, regex=True)]
+    print("cutting_valuedfff",dff1)
+
+    mws_qty = dff1[dff1['MACHINE'] == "MWS"]['AREA IN SQFT'].sum()
+    no_mws_qty = dff1[dff1['MACHINE'] != "MWS"]['AREA IN SQFT'].sum()
+
+    def get_cost(item_name, process_name=None):
+        """Fetches cost per SFT safely, returns 0 if not found."""
+        if process_name:
+            cost_series = df2[(df2['MONTH'] == month) & (df2['PROCESS'] == process_name)]['COST PER SFT']
+        else:
+            cost_series = df2[(df2['MONTH'] == month) & (df2['ITEM'] == item_name)]['COST PER SFT']
+        return cost_series.iloc[0] if not cost_series.empty else 0
+
+    misc_cost = (mws_qty + no_mws_qty) * get_cost(None, "MISC")
+    mws_price = mws_qty * get_cost("MULTI WIRE SAW")
+    no_mws_price = no_mws_qty * get_cost("CUTTER")
+    salary = (mws_qty + no_mws_qty) * get_cost("SALARY")
+
+    total_cost = mws_price + no_mws_price + salary
+    total_area = mws_qty + no_mws_qty
+
+    print("cutting_value", total_area, total_cost, misc_cost)
+    
+    return total_area, total_cost, misc_cost
+
+def polishing_value(block, df1, df2, month):
+    dff1 = df1[df1['BLOCK NO'].str.contains(fr'^{block}\s*[A-Z]?$', na=False, regex=True)]
+    # print("this ths the polishing dataframe have the regex dff1",dff1)
+    grinding_qty = dff1[dff1['PROCESS CATEGORY'] == "GRINDING"]['SFT'].sum()
+    polishing_qty = dff1[dff1['PROCESS CATEGORY'] == "POLISHING"]['SFT'].sum()
+    leather_honed_qty = dff1[dff1['PROCESS CATEGORY'] == "LEATHER ADN HONED"]['SFT'].sum()
+    # print("polishing aty",grinding_qty,polishing_qty,leather_honed_qty)
+
+    def get_cost(process_name):
+        """Fetches cost per SFT safely, returns 0 if not found."""
+        cost_series = df2[(df2['MONTH'] == month) & (df2['PROCESS'] == process_name)]['COST PER SFT']
+        return cost_series.iloc[0] if not cost_series.empty else 0
+
+    polish_price = polishing_qty * get_cost("POLISHING")
+    grinding_price = grinding_qty * get_cost("GRINDING")
+    leather_honed_price = leather_honed_qty * get_cost("LEATHER AND HONED")
+    # print("polishing_price",polish_price,grinding_price,leather_honed_price)
+
+    return polish_price + grinding_price + leather_honed_price
+def epoxy_value(block, df1, df2, month):
+    dff1 = df1[df1['BLOCK NO'].str.contains(fr'^{block}\s*[A-Z]?$', na=False, regex=True)]
+    epoxy_cost = dff1["COST"].sum()
+    
+    nettingqty = dff1[dff1["TYPE OF EPOXY"] == 1204]['SLAB SFT'].sum()  # Ensure sum() for scalar value
+    netting_price_series = df2[(df2['MONTH'] == month) & (df2['PROCESS'] == "NETTING")]['COST PER SFT']
+    print(netting_price_series)
+    
+    if not netting_price_series.empty:
+        netting_price = nettingqty * netting_price_series.values[0]  # Extract scalar value before multiplication
+    else:
+        netting_price = 0  # Default to zero if no cost found
+    print("this is the epoxy value",nettingqty,netting_price,epoxy_cost)
+    
+    return epoxy_cost + netting_price
+block_columns = ["BLOCK NO", "COLOUR", "CUTTING QTY", "CUTTING COST", "POLISHING COST", "EPOXY COST", "MISC COST"]
+block_cost_df = pd.DataFrame(columns=block_columns)
 
 layout = dbc.Container( [dcc.DatePickerRange(
         id='my-date-picker-range',
@@ -128,10 +196,14 @@ layout = dbc.Container( [dcc.DatePickerRange(
     }),
     dbc.Row(dcc.Dropdown(cost_df['MONTH'].unique(),placeholder='select the month',multi=True,id="page3dropdown2")),
     grid3,
-    dash.dash_table.DataTable(cost_df.to_dict('records'), [{"name": i, "id": i} for i in cost_df.columns]),
+    dbc.Row(dcc.Dropdown(dressing_df['COLOUR'].unique(),placeholder="select the colour",multi=True,id="page3colourselect")),
+    dbc.Row(dcc.Dropdown(id='block_selection',placeholder="select the blocks",multi=True)),
+    dbc.Row(dcc.Graph(figure={},id='page3graph2'),style={
+        # "width": "2000px",  # Set a large width for the graph container
+        "overflow-x": "auto",  # Enable horizontal scrolling
+        "white-space": "nowrap"  # Prevent graph from wrapping
+    })])
 
-    ])
-# print(data3)
 
 @callback(
     Output(component_id='TOTAL RECEIPT VALUE',component_property='children'),
@@ -152,5 +224,100 @@ def update(start_date,end_date,category):
     issue_val=sum(filtered_data['ISSUE\n VALUE'])
     figpage3=px.histogram(filtered_data,x=filtered_data['DATE'],y=filtered_data['ISSUE\n VALUE']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
     return recipt_val,issue_val,figpage3
+
+
+@callback(
+    Output(component_id="block_selection",component_property="options"),
+    Input(component_id="page3colourselect",component_property="value")
+)
+def updateblock(colour_name):
+    if not colour_name:
+        return []
+    blocks_no=dressing_df[dressing_df['COLOUR'].isin(colour_name)]["BLOCK NO"].unique()
+    return blocks_no
+
+@callback(
+    Output(component_id="page3graph2",component_property="figure"),
+    Input(component_id="block_selection",component_property="value"),
+    prevent_initial_call= True
+
+)
+def update_values(block_no):
+    block_columns = ["BLOCK NO", "COLOUR", "CUTTING QTY", "CUTTING COST", "POLISHING COST", "EPOXY COST", "MISC COST"]
+    block_cost_df = pd.DataFrame(columns=block_columns)
+    if not block_no:
+        return go.Figure()
+    for block in block_no:
+        block_colour ,dress_price, month=dressing_value(block,dressing_df,cost_df)
+        if month=="MARCH":
+            month="FEBURARY"
+        block_cut_qty,block_cut_cost,block_misc_cost,=cutting_value(block,cutting_df,cost_df,month)
+        block_polish_cost=polishing_value(block,polishing_df,cost_df,month)
+        block_epoxy_cost=epoxy_value(block,epoxy_df,cost_df,month)
+        # print("THESE ARE SERIAL WISE VALUES",block,block_cut_qty,"\n",block_colour,"\n",block_cut_cost,"\n",block_polish_cost,"\n",block_epoxy_cost,"\n",block_misc_cost)
+        new_row = {
+            "BLOCK NO": block,
+            "COLOUR": block_colour,
+            "CUTTING QTY": block_cut_qty,
+            "CUTTING COST": block_cut_cost,  # Convert Series to a single value
+            "POLISHING COST": block_polish_cost,
+            "EPOXY COST": block_epoxy_cost,
+            "MISC COST": block_misc_cost
+        }
+        block_cost_df = pd.concat([block_cost_df, pd.DataFrame([new_row])], ignore_index=True)
+        
+    block_cost_df["TOTAL COST"] = block_cost_df.iloc[:, 2:].sum(axis=1)
+    print(block_cost_df)
+    # page3fig2=px.histogram(block_cost_df,x='BLOCK NO',y=block_cost_df.columns[2:-1].to_list()).update_layout(template="plotly_dark",xaxis=dict(type='category'))
+    # return page3fig2
+    chart_df = block_cost_df[["BLOCK NO", "CUTTING QTY", "TOTAL COST"]].melt(
+    id_vars=["BLOCK NO"], 
+    value_vars=["CUTTING QTY", "TOTAL COST"],
+    var_name="Category", 
+    value_name="Value"
+)
+
+# Add custom hover text for "TOTAL COST"
+    block_cost_df["HOVER_TEXT"] = (
+        "CUTTING COST: " + block_cost_df["CUTTING COST"].astype(str) + "<br>" +
+        "POLISHING COST: " + block_cost_df["POLISHING COST"].astype(str) + "<br>" +
+        "EPOXY COST: " + block_cost_df["EPOXY COST"].astype(str) + "<br>" +
+        "MISC COST: " + block_cost_df["MISC COST"].astype(str)
+    )
+
+# Merge hover text into the chart DataFrame
+    chart_df = chart_df.merge(block_cost_df[["BLOCK NO", "HOVER_TEXT"]], on="BLOCK NO", how="left")
+
+# Create a grouped bar chart
+    page3fig2 = px.bar(chart_df, 
+                   x="BLOCK NO", 
+                   y="Value", 
+                   color="Category", 
+                   barmode="group",  # Grouped bars
+                   template="plotly_dark",
+                   custom_data=["HOVER_TEXT"])  # Add custom hover data
+
+# Update hover template to show custom text for "TOTAL COST"
+    page3fig2.update_traces(
+        hovertemplate="<b>%{x}</b><br>" +  # BLOCK NO
+                    "Category: %{customdata[0]}<br>" +  # Custom hover text
+                    "Value: %{y}<extra></extra>"  # Value of the bar
+    )
+
+    # Update x-axis to categorical
+    page3fig2.update_layout(xaxis=dict(type='category'))
+    
+    return page3fig2
+
+
+
+
+
+
+
+        
+
+
+
 
 
