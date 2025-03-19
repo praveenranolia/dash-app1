@@ -21,7 +21,7 @@ data3=pd.read_excel('https://docs.google.com/spreadsheets/d/1LXlNqgl_Dy9nt9gocO8
 scopes=[
     "https://www.googleapis.com/auth/spreadsheets"
 ]
-creds=Credentials.from_service_account_file("credentials.json",scopes=scopes)
+# creds=Credentials.from_service_account_file("credentials.json",scopes=scopes)
 google_creds = os.getenv("GOOGLE_CREDENTIALS")
 if google_creds:
     creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
