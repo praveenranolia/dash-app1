@@ -108,7 +108,7 @@ def dressing_value(block, df1, df2):
         return cost_series.iloc[0] if not cost_series.empty else 0
 
     # Calculate costs
-    price = qty * get_cost("MONOWIRE SAW")
+    price = round(qty * get_cost("MONOWIRE SAW"),0)
 
     return block_colour, price, month
 #function to calculate the cutting qty and cutting cost and misc cost
@@ -127,12 +127,12 @@ def cutting_value(block, df1, df2, month):
             cost_series = df2[(df2['MONTH'] == month) & (df2['ITEM'] == item_name)]['COST PER SFT']
         return cost_series.iloc[0] if not cost_series.empty else 0
 
-    misc_cost = (mws_qty + no_mws_qty) * get_cost(None, "MISC")
+    misc_cost = round((mws_qty + no_mws_qty) * get_cost(None, "MISC"),0)
     mws_price = mws_qty * get_cost("MULTI WIRE SAW")
     no_mws_price = no_mws_qty * get_cost("CUTTER")
     salary = (mws_qty + no_mws_qty) * get_cost("SALARY")
 
-    total_cost = mws_price + no_mws_price + salary
+    total_cost = round(mws_price + no_mws_price + salary,0)
     total_area = mws_qty + no_mws_qty
 
     # print("cutting_value", total_area, total_cost, misc_cost)
@@ -157,7 +157,7 @@ def polishing_value(block, df1, df2, month):
     leather_honed_price = leather_honed_qty * get_cost("LEATHER AND HONED")
     # print("polishing_price",polish_price,grinding_price,leather_honed_price)
 
-    return polish_price + grinding_price + leather_honed_price
+    return round(polish_price + grinding_price + leather_honed_price,0)
 def epoxy_value(block, df1, df2, month):
     dff1 = df1[df1['BLOCK NO'].str.contains(fr'^{block}\s*[A-Z]?$', na=False, regex=True)]
     epoxy_cost = dff1["COST"].sum()
@@ -172,7 +172,7 @@ def epoxy_value(block, df1, df2, month):
         netting_price = 0  # Default to zero if no cost found
     # print("this is the epoxy value",nettingqty,netting_price,epoxy_cost)
     
-    return epoxy_cost + netting_price
+    return round(epoxy_cost + netting_price,0)
 block_columns = ["BLOCK NO", "COLOUR", "CUTTING QTY", "CUTTING COST", "POLISHING COST", "EPOXY COST", "MISC COST"]
 block_cost_df = pd.DataFrame(columns=block_columns)
 
@@ -259,6 +259,7 @@ def update_values(block_no):
             "BLOCK NO": block,
             "COLOUR": block_colour,
             "CUTTING QTY": block_cut_qty,
+            "DRESSING COST": dress_price,
             "CUTTING COST": block_cut_cost,  # Convert Series to a single value
             "POLISHING COST": block_polish_cost,
             "EPOXY COST": block_epoxy_cost,
@@ -266,7 +267,7 @@ def update_values(block_no):
         }
         block_cost_df = pd.concat([block_cost_df, pd.DataFrame([new_row])], ignore_index=True)
         
-    block_cost_df["TOTAL COST"] = block_cost_df.iloc[:, 2:].sum(axis=1)
+    block_cost_df["TOTAL COST"] = block_cost_df.iloc[:, 3:].sum(axis=1)
     # print(block_cost_df)
     # page3fig2=px.histogram(block_cost_df,x='BLOCK NO',y=block_cost_df.columns[2:-1].to_list()).update_layout(template="plotly_dark",xaxis=dict(type='category'))
     # return page3fig2
@@ -279,6 +280,7 @@ def update_values(block_no):
 
 # Add custom hover text for "TOTAL COST"
     block_cost_df["HOVER_TEXT"] = (
+        "DRESSING COST: "+ block_cost_df["DRESSING COST"].astype(str) + "<br>" +
         "CUTTING COST: " + block_cost_df["CUTTING COST"].astype(str) + "<br>" +
         "POLISHING COST: " + block_cost_df["POLISHING COST"].astype(str) + "<br>" +
         "EPOXY COST: " + block_cost_df["EPOXY COST"].astype(str) + "<br>" +

@@ -131,6 +131,7 @@ def blockdropdown(block_value):
     total_sales_amount=round(sum(block_df2['TOTAL VALUE']),2)
     total_gst=round(sum(block_df2['GST']),2)
     block_transportation_amount=round(sum(block_df2['ADJ TRANSPORT CHARGES PER BLOCK']),2)
-    page2fig2=px.histogram(block_df2,x=block_df2['BLOCK NO'],y=[block_df2['TOTAL VALUE'],block_df2['GST'],block_df2['ADJ TRANSPORT CHARGES PER BLOCK']]).update_layout(template="plotly_dark",xaxis=dict(type='category'))
+    page2fig2=px.histogram(block_df2,x=block_df2['BLOCK NO'],y=[block_df2['TOTAL VALUE'],block_df2['GST'],block_df2['ADJ TRANSPORT CHARGES PER BLOCK']])
+    
     return total_sales_amount,total_gst,page2fig2,block_transportation_amount
 
