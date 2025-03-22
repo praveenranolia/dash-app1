@@ -16,7 +16,7 @@ dash.register_page(__name__, path="/page-1")
 scopes=[
     "https://www.googleapis.com/auth/spreadsheets"
 ]
-# creds=Credentials.from_service_account_file("credentials.json",scopes=scopes)
+# creds=Credentials.from_service_account_file("credentials.json",scopes=scopes) 
 google_creds = os.getenv("GOOGLE_CREDENTIALS")
 if google_creds:
     creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
@@ -53,6 +53,9 @@ card_recovery = dbc.Card(
         html.H3('AVG. RECOVERY'),
         html.P('(dispatched +instock)inSQF/CBM of block'),
         html.Div(id='recovery', children=0,style={'font-size':'50px'}),
+        html.P('Cutting QTY SFT: ', style={"fontWeight": "bold"}),
+        html.Div(id='cuttingqty', children='0', style={"marginBottom": "10px",'font-size':'40px'}),
+
     ]),
     style={"width": "100%",'height':'100%'}  # Ensure card uses full width of its column
 )
@@ -96,7 +99,7 @@ grid=dag.AgGrid(
 # dynamic chart for APO recovery
 layout = dbc.Container(
     [dbc.Row(dcc.Dropdown(df['COLOR NAME'].unique(),placeholder='select the colors',multi=True,id='dropdown')),
-     dbc.Row(dcc.Dropdown(id='cutterselection',placeholder='select the cutter')),
+     dbc.Row(dcc.Dropdown(id='cutterselection',placeholder='select the size')),
      tabs,
         dbc.Row(
             [ dbc.Col(card_recovery,className="d-flex align-items-stretch" ,style={'margin-bottom': '20px'}),
@@ -149,6 +152,7 @@ def update(dropdown_value):
     Output(component_id='in_stocks',component_property='children'),
     Output(component_id='blockselection',component_property='options'),
     Output(component_id='blockcount',component_property='children'),
+    Output(component_id="cuttingqty",component_property="children"),
     Input(component_id='dropdown',component_property='value'),
     Input(component_id='cutterselection',component_property='value'),
     Input(component_id='tab_selection',component_property='active_tab'),
@@ -156,11 +160,12 @@ def update(dropdown_value):
 )
 def func2(colors,cutters,selected_tab):
     if not colors or not cutters:
-        return go.Figure(), "", "", "", [],""
+        return go.Figure(), "", "", "", [],"",""
     # print(colors,cutters)
      
     dff2=df[(df['COLOR NAME'].isin(colors)) & (df['SIZE']==cutters)]
     values=dff2['BLOCK NO']
+    cutting_qty=round(dff2['CUTTING QTY'].sum(),2)
     fig=px.histogram(dff2,x=dff2['BLOCK NO'],y=dff2['RECOVERY']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
 
     if selected_tab == "all_dispatched":
@@ -171,6 +176,7 @@ def func2(colors,cutters,selected_tab):
         # print('this is for all dipatched page1 ',dff2)
     else:
         dff2 = dff2[(dff2['DISPATCHED SLABS'] == 0) & (dff2['CUTTING QTY']>0)]
+        # print("dataset for the not dispatched slabs",dff2[['ADJ CBM',"CUTTING QTY"]])
         rec=round(sum(dff2['CUTTING QTY'])*.85/sum(dff2['ADJ CBM']),2)
         block_count=dff2['BLOCK NO'].nunique()
         # print(block_count)
@@ -179,7 +185,7 @@ def func2(colors,cutters,selected_tab):
     dispactchqty=round(dff2['DISPATCHED QTY'].sum(),2)
     # instockqty=round(dff2['CUTTING QTY'].sum()-dispactchqty,2)
     instockqty=round(dff2['SFT FOR BAL SLABS'].sum(),2)
-    return fig,rec,dispactchqty,instockqty,values,block_count
+    return fig,rec,dispactchqty,instockqty,values,block_count, cutting_qty
 
 
 

@@ -20,7 +20,7 @@ SIDEBAR_STYLE = {
 CONTENT_STYLE = {
     "margin-left": "25%",
     "margin-right": "2rem",
-    "padding": "20px",
+    "padding": "10px",
     'overflow':"auto"
 }
 app.layout = dbc.Container(
