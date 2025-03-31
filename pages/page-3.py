@@ -11,31 +11,27 @@ import plotly.graph_objects as go
 from datetime import date
 import gspread
 from google.oauth2.service_account import Credentials
-# from sqlalchemy import create_engine
-
 dash.register_page(__name__, path="/page-3")
-# engine =create_engine('postgresql://postgres:4248@localhost:5432/postgres')
-# data3 = pd.read_sql("SELECT * FROM shoolgiri_consumeables", engine)
 data3=pd.read_excel('https://docs.google.com/spreadsheets/d/1LXlNqgl_Dy9nt9gocO8jMlrRl7_5hR1u5KTIcuqsUVw/export?/format=xlsx')
 # fetching the costing data using google sheets APIs
 scopes=[
     "https://www.googleapis.com/auth/spreadsheets"
 ]
-# creds=Credentials.from_service_account_file("credentials.json",scopes=scopes)
-google_creds = os.getenv("GOOGLE_CREDENTIALS")
-if google_creds:
-    creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
+creds=Credentials.from_service_account_file("credentials.json",scopes=scopes)
+# google_creds = os.getenv("GOOGLE_CREDENTIALS")
+# if google_creds:
+#     creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
 
-    # Create a temporary file to store the credentials
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp:
-        json.dump(creds_dict, temp)
-        temp.flush()
-        credentials_path = temp.name  # Store temp file path
+#     # Create a temporary file to store the credentials
+#     with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp:
+#         json.dump(creds_dict, temp)
+#         temp.flush()
+#         credentials_path = temp.name  # Store temp file path
 
-    # Use the temporary file instead of a local credentials.json file
-    creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
-else:
-    raise ValueError("GOOGLE_CREDENTIALS environment variable is not set.")
+#     # Use the temporary file instead of a local credentials.json file
+#     creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
+# else:
+#     raise ValueError("GOOGLE_CREDENTIALS environment variable is not set.")
 client=gspread.authorize(creds)
 sheet_id="1NvnuOaY8ZAZO_vgZhgessJO5-X6tUbEx0f_ybRJ-3U4"
 cost_sheet_id="1iONtXc1AGdatKP9fQDBOKOhVZTUgDkw6Y7_uhNYCJcg"
@@ -62,6 +58,25 @@ grid3=dag.AgGrid(
     dashGridOptions={"pagination": True, "animateRows": False},
 )
 #cost table
+grid4=dag.AgGrid(
+
+    id="page3grid1",
+    rowData=[],
+    columnDefs=[
+        {
+            "field": i,
+            "width": 110,  # Adjusted width for better fit
+            "cellStyle": {'padding': '0 5px'}  # Reduce internal padding
+        } for i in [
+            "COLOUR", "BLOCK NO", "CUTTING QTY",
+            "CUTTING COST", "POLISHING COST", "EPOXY COST", "MISC COST", "TOTAL COST"
+        ]
+    ],
+    defaultColDef={"filter": True, "sortable": True, "resizable": True},
+    className="ag-theme-alpine-dark",
+    dashGridOptions={"pagination": True, "animateRows": False},
+
+)
 
 recipt_value=dbc.Card([
     dbc.CardHeader('TOTAL RECEIPT VALUE'),
@@ -113,7 +128,9 @@ def dressing_value(block, df1, df2):
     return block_colour, price, month
 #function to calculate the cutting qty and cutting cost and misc cost
 def cutting_value(block, df1, df2, month):
+
     dff1 = df1[df1['BLOCK NO'].str.contains(fr'^{block}\s*[A-Z]?$', na=False, regex=True)]
+    # print("cutting data","\n","month:",month,"\n",dff1)
     # print("cutting_valuedfff",dff1)
 
     mws_qty = dff1[dff1['MACHINE'] == "MWS"]['AREA IN SQFT'].sum()
@@ -125,6 +142,8 @@ def cutting_value(block, df1, df2, month):
             cost_series = df2[(df2['MONTH'] == month) & (df2['PROCESS'] == process_name)]['COST PER SFT']
         else:
             cost_series = df2[(df2['MONTH'] == month) & (df2['ITEM'] == item_name)]['COST PER SFT']
+            # print("this else condition executed:",
+                #   '\n',cost_series)
         return cost_series.iloc[0] if not cost_series.empty else 0
 
     misc_cost = round((mws_qty + no_mws_qty) * get_cost(None, "MISC"),0)
@@ -133,7 +152,8 @@ def cutting_value(block, df1, df2, month):
     salary = (mws_qty + no_mws_qty) * get_cost("SALARY")
 
     total_cost = round(mws_price + no_mws_price + salary,0)
-    total_area = mws_qty + no_mws_qty
+    # print("cutting cost costing",total_cost)
+    total_area = round(mws_qty + no_mws_qty,0)
 
     # print("cutting_value", total_area, total_cost, misc_cost)
     
@@ -176,7 +196,15 @@ def epoxy_value(block, df1, df2, month):
 block_columns = ["BLOCK NO", "COLOUR", "CUTTING QTY", "CUTTING COST", "POLISHING COST", "EPOXY COST", "MISC COST"]
 block_cost_df = pd.DataFrame(columns=block_columns)
 
-layout = dbc.Container( [dcc.DatePickerRange(
+layout = dbc.Container( [ dbc.Row(dcc.Dropdown(dressing_df['COLOUR'].unique(),placeholder="select the colour",multi=True,id="page3colourselect")),
+    dbc.Row(dcc.Dropdown(id='block_selection',placeholder="select the blocks",multi=True)),
+    # dbc.Row(dcc.Graph(figure={},id='page3graph2'),style={
+    #     # "width": "2000px",  # Set a large width for the graph container
+    #     "overflow-x": "auto",  # Enable horizontal scrolling
+    #     "white-space": "nowrap"  # Prevent graph from wrapping
+    # }),
+    grid4,
+    dcc.DatePickerRange(
         id='my-date-picker-range',
         min_date_allowed=data3['DATE'].min(),
         max_date_allowed=data3['DATE'].max(),
@@ -196,13 +224,7 @@ layout = dbc.Container( [dcc.DatePickerRange(
     }),
     dbc.Row(dcc.Dropdown(cost_df['MONTH'].unique(),placeholder='select the month',multi=True,id="page3dropdown2")),
     grid3,
-    dbc.Row(dcc.Dropdown(dressing_df['COLOUR'].unique(),placeholder="select the colour",multi=True,id="page3colourselect")),
-    dbc.Row(dcc.Dropdown(id='block_selection',placeholder="select the blocks",multi=True)),
-    dbc.Row(dcc.Graph(figure={},id='page3graph2'),style={
-        # "width": "2000px",  # Set a large width for the graph container
-        "overflow-x": "auto",  # Enable horizontal scrolling
-        "white-space": "nowrap"  # Prevent graph from wrapping
-    })])
+])
 
 
 @callback(
@@ -237,7 +259,8 @@ def updateblock(colour_name):
     return blocks_no
 
 @callback(
-    Output(component_id="page3graph2",component_property="figure"),
+    # Output(component_id="page3graph2",component_property="figure"),
+    Output(component_id="page3grid1",component_property="rowData"),
     Input(component_id="block_selection",component_property="value"),
     prevent_initial_call= True
 
@@ -250,7 +273,7 @@ def update_values(block_no):
     for block in block_no:
         block_colour ,dress_price, month=dressing_value(block,dressing_df,cost_df)
         if month=="MARCH":
-            month="FEBURARY"
+            month="FEBRUARY"
         block_cut_qty,block_cut_cost,block_misc_cost,=cutting_value(block,cutting_df,cost_df,month)
         block_polish_cost=polishing_value(block,polishing_df,cost_df,month)
         block_epoxy_cost=epoxy_value(block,epoxy_df,cost_df,month)
@@ -271,45 +294,47 @@ def update_values(block_no):
     # print(block_cost_df)
     # page3fig2=px.histogram(block_cost_df,x='BLOCK NO',y=block_cost_df.columns[2:-1].to_list()).update_layout(template="plotly_dark",xaxis=dict(type='category'))
     # return page3fig2
-    chart_df = block_cost_df[["BLOCK NO", "CUTTING QTY", "TOTAL COST"]].melt(
-    id_vars=["BLOCK NO"], 
-    value_vars=["CUTTING QTY", "TOTAL COST"],
-    var_name="Category", 
-    value_name="Value"
-)
 
-# Add custom hover text for "TOTAL COST"
-    block_cost_df["HOVER_TEXT"] = (
-        "DRESSING COST: "+ block_cost_df["DRESSING COST"].astype(str) + "<br>" +
-        "CUTTING COST: " + block_cost_df["CUTTING COST"].astype(str) + "<br>" +
-        "POLISHING COST: " + block_cost_df["POLISHING COST"].astype(str) + "<br>" +
-        "EPOXY COST: " + block_cost_df["EPOXY COST"].astype(str) + "<br>" +
-        "MISC COST: " + block_cost_df["MISC COST"].astype(str)
-    )
+#     chart_df = block_cost_df[["BLOCK NO", "CUTTING QTY", "TOTAL COST"]].melt(
+#     id_vars=["BLOCK NO"], 
+#     value_vars=["CUTTING QTY", "TOTAL COST"],
+#     var_name="Category", 
+#     value_name="Value"
+# )
 
-# Merge hover text into the chart DataFrame
-    chart_df = chart_df.merge(block_cost_df[["BLOCK NO", "HOVER_TEXT"]], on="BLOCK NO", how="left")
+# # Add custom hover text for "TOTAL COST"
+#     block_cost_df["HOVER_TEXT"] = (
+#         "DRESSING COST: "+ block_cost_df["DRESSING COST"].astype(str) + "<br>" +
+#         "CUTTING COST: " + block_cost_df["CUTTING COST"].astype(str) + "<br>" +
+#         "POLISHING COST: " + block_cost_df["POLISHING COST"].astype(str) + "<br>" +
+#         "EPOXY COST: " + block_cost_df["EPOXY COST"].astype(str) + "<br>" +
+#         "MISC COST: " + block_cost_df["MISC COST"].astype(str)
+#     )
 
-# Create a grouped bar chart
-    page3fig2 = px.bar(chart_df, 
-                   x="BLOCK NO", 
-                   y="Value", 
-                   color="Category", 
-                   barmode="group",  # Grouped bars
-                   template="plotly_dark",
-                   custom_data=["HOVER_TEXT"])  # Add custom hover data
+# # Merge hover text into the chart DataFrame
+#     chart_df = chart_df.merge(block_cost_df[["BLOCK NO", "HOVER_TEXT"]], on="BLOCK NO", how="left")
 
-# Update hover template to show custom text for "TOTAL COST"
-    page3fig2.update_traces(
-        hovertemplate="<b>%{x}</b><br>" +  # BLOCK NO
-                    "Category: %{customdata[0]}<br>" +  # Custom hover text
-                    "Value: %{y}<extra></extra>"  # Value of the bar
-    )
+# # Create a grouped bar chart
+#     page3fig2 = px.bar(chart_df, 
+#                    x="BLOCK NO", 
+#                    y="Value", 
+#                    color="Category", 
+#                    barmode="group",  # Grouped bars
+#                    template="plotly_dark",
+#                    custom_data=["HOVER_TEXT"])  # Add custom hover data
 
-    # Update x-axis to categorical
-    page3fig2.update_layout(xaxis=dict(type='category'))
+# # Update hover template to show custom text for "TOTAL COST"
+#     page3fig2.update_traces(
+#         hovertemplate="<b>%{x}</b><br>" +  # BLOCK NO
+#                     "Category: %{customdata[0]}<br>" +  # Custom hover text
+#                     "Value: %{y}<extra></extra>"  # Value of the bar
+#     )
+
+#     # Update x-axis to categorical
+#     page3fig2.update_layout(xaxis=dict(type='category'))
+    # print(block_cost_df)
     
-    return page3fig2
+    return block_cost_df.to_dict("records")
 
 
 

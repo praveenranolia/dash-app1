@@ -16,21 +16,21 @@ dash.register_page(__name__, path="/page-1")
 scopes=[
     "https://www.googleapis.com/auth/spreadsheets"
 ]
-# creds=Credentials.from_service_account_file("credentials.json",scopes=scopes) 
-google_creds = os.getenv("GOOGLE_CREDENTIALS")
-if google_creds:
-    creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
+creds=Credentials.from_service_account_file("credentials.json",scopes=scopes) 
+# google_creds = os.getenv("GOOGLE_CREDENTIALS")
+# if google_creds:
+#     creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
 
-    # Create a temporary file to store the credentials
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp:
-        json.dump(creds_dict, temp)
-        temp.flush()
-        credentials_path = temp.name  # Store temp file path
+#     # Create a temporary file to store the credentials
+#     with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp:
+#         json.dump(creds_dict, temp)
+#         temp.flush()
+#         credentials_path = temp.name  # Store temp file path
 
-    # Use the temporary file instead of a local credentials.json file
-    creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
-else:
-    raise ValueError("GOOGLE_CREDENTIALS environment variable is not set.")
+#     # Use the temporary file instead of a local credentials.json file
+#     creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
+# else:
+#     raise ValueError("GOOGLE_CREDENTIALS environment variable is not set.")
 client=gspread.authorize(creds)
 sheet_id="1lGNiK4_L2r8ZOE1slGfC0ZaPRBsVq8GwNW5N4zkRgj4"
 sheet=client.open_by_key(sheet_id)
@@ -113,11 +113,11 @@ layout = dbc.Container(
              dbc.Col(dcc.Graph(figure={},id='minigraph'))]),
         
     
-        dbc.Row(dcc.Graph(figure={},id='graph1'),style={
-                # "width": "2000px",  # Set a large width for the graph container
-                "overflow-x": "auto",  # Enable horizontal scrolling
-                "white-space": "nowrap"  # Prevent graph from wrapping
-            }),
+        # dbc.Row(dcc.Graph(figure={},id='graph1'),style={
+        #         # "width": "2000px",  # Set a large width for the graph container
+        #         "overflow-x": "auto",  # Enable horizontal scrolling
+        #         "white-space": "nowrap"  # Prevent graph from wrapping
+        #     }),
         grid
     ],
     fluid=True
@@ -146,7 +146,7 @@ def update(dropdown_value):
     return cutter_methods
 
 @callback(
-    Output(component_id='graph1',component_property='figure'),
+    # Output(component_id='graph1',component_property='figure'),
     Output(component_id='recovery',component_property='children'),
     Output(component_id='dispatched',component_property='children'),
     Output(component_id='in_stocks',component_property='children'),
@@ -160,7 +160,7 @@ def update(dropdown_value):
 )
 def func2(colors,cutters,selected_tab):
     if not colors or not cutters:
-        return go.Figure(), "", "", "", [],"",""
+        return  "", "", "", [],"",""
     # print(colors,cutters)
      
     dff2=df[(df['COLOR NAME'].isin(colors)) & (df['SIZE']==cutters)]
@@ -185,7 +185,7 @@ def func2(colors,cutters,selected_tab):
     dispactchqty=round(dff2['DISPATCHED QTY'].sum(),2)
     # instockqty=round(dff2['CUTTING QTY'].sum()-dispactchqty,2)
     instockqty=round(dff2['SFT FOR BAL SLABS'].sum(),2)
-    return fig,rec,dispactchqty,instockqty,values,block_count, cutting_qty
+    return rec,dispactchqty,instockqty,values,block_count, cutting_qty
 
 
 
