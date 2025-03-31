@@ -16,21 +16,21 @@ dash.register_page(__name__, path="/page-1")
 scopes=[
     "https://www.googleapis.com/auth/spreadsheets"
 ]
-creds=Credentials.from_service_account_file("credentials.json",scopes=scopes) 
-# google_creds = os.getenv("GOOGLE_CREDENTIALS")
-# if google_creds:
-#     creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
+# creds=Credentials.from_service_account_file("credentials.json",scopes=scopes) 
+google_creds = os.getenv("GOOGLE_CREDENTIALS")
+if google_creds:
+    creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
 
-#     # Create a temporary file to store the credentials
-#     with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp:
-#         json.dump(creds_dict, temp)
-#         temp.flush()
-#         credentials_path = temp.name  # Store temp file path
+    # Create a temporary file to store the credentials
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp:
+        json.dump(creds_dict, temp)
+        temp.flush()
+        credentials_path = temp.name  # Store temp file path
 
-#     # Use the temporary file instead of a local credentials.json file
-#     creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
-# else:
-#     raise ValueError("GOOGLE_CREDENTIALS environment variable is not set.")
+    # Use the temporary file instead of a local credentials.json file
+    creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
+else:
+    raise ValueError("GOOGLE_CREDENTIALS environment variable is not set.")
 client=gspread.authorize(creds)
 sheet_id="1lGNiK4_L2r8ZOE1slGfC0ZaPRBsVq8GwNW5N4zkRgj4"
 sheet=client.open_by_key(sheet_id)
