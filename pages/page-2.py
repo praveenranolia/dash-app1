@@ -49,7 +49,7 @@ def fetch_sheet_data(sheet_name):
     return pd.DataFrame(data)
 
 dressing_df_2 = fetch_sheet_data("DRESSING")
-print(dressing_df_2.head(5))
+# print(dressing_df_2.head(5))
 cutting_df_2 = fetch_sheet_data("CUTTING")
 polishing_df_2 = fetch_sheet_data("POLISHING AND GRINDING")
 epoxy_df_2 = fetch_sheet_data("EPOXY")
@@ -103,7 +103,7 @@ def update(blocknums):
         block_polish_cost=polishing_value(block,polishing_df_2,cost_df_2,month)
         block_epoxy_cost=epoxy_value(block,epoxy_df_2,cost_df_2,month)
         inv_amount,slabs,sales_amount,transport,balance_slabs= purchase_cost(recovery_df,block)
-        print("this is the transport cost showing at page2",transport)
+        # print("this is the transport cost showing at page2",transport)
         pc=dress_price+block_cut_cost+block_misc_cost+block_polish_cost+block_epoxy_cost
         
         total_cost=inv_amount+transport+pc
