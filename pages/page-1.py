@@ -39,7 +39,6 @@ df=pd.DataFrame(data)
 # df=pd.read_excel('https://docs.google.com/spreadsheets/d/1NbzklkOrIH4b4ayI-xu_tBN3mqYd0dDrS_Vz7hCmiAo/export?/format=xlsx')
 # df=pd.read_excel('https://docs.google.com/spreadsheets/d/1qSho2LLqIBMhKDCcGC_7vLkUc7rNa012o8Tvh37MkwU/export?format=xlsx')
 # filling the NaN value to zero just for instance
-df=df.fillna(0)
 df.replace('',0,inplace=True)
 # layout of the page
 # card 1 'Recovery'
@@ -111,13 +110,6 @@ layout = dbc.Container(
 
     ),
              dbc.Col(dcc.Graph(figure={},id='minigraph'))]),
-        
-    
-        # dbc.Row(dcc.Graph(figure={},id='graph1'),style={
-        #         # "width": "2000px",  # Set a large width for the graph container
-        #         "overflow-x": "auto",  # Enable horizontal scrolling
-        #         "white-space": "nowrap"  # Prevent graph from wrapping
-        #     }),
         grid
     ],
     fluid=True

@@ -1,137 +1,133 @@
 import dash
+import os
+import tempfile
+import json
 import pandas as pd
 from dash import html,dcc, Input, Output, State, callback, Patch
 import plotly.express as px
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 import plotly.graph_objects as go
+import gspread
+from google.oauth2.service_account import Credentials
 
 dash.register_page(__name__, path="/page-2")
-# importing the data
-df2=pd.read_excel('https://docs.google.com/spreadsheets/d/1NbzklkOrIH4b4ayI-xu_tBN3mqYd0dDrS_Vz7hCmiAo/export?/format=xlsx')
+scopes=[
+    "https://www.googleapis.com/auth/spreadsheets"
+]
+# creds=Credentials.from_service_account_file("credentials.json",scopes=scopes) 
+google_creds = os.getenv("GOOGLE_CREDENTIALS")
+if google_creds:
+    creds_dict = json.loads(google_creds)  # Convert JSON string to dictionary
 
-# )
-# df2=pd.read_excel('/Users/praveen/Desktop/APO_DASH/Data_dash_recovery.xlsx')
-# df2=pd.read_excel('/Users/praveen/Desktop/APO_DASH/RECOVERY.xlsx')
-# df2=pd.read_csv('/Users/praveen/Desktop/APO_DASH/RECOVERY.csv')
-# filling the NaN value to zero just for instance
-df2=df2.fillna(0)
-card_sales= dbc.Card(
-    dbc.CardBody([
-        html.H3('Sales'),
-        html.P('TOTAL AMOUNT INR: ', style={"fontWeight": "bold"}),
-        html.Div(id='totalamount', children='0', style={"marginBottom": "10px",'font-size':'40px'}),
-        html.P('TOTAL GST INR: ', style={"fontWeight": "bold"}),
-        html.Div(id='gstamount', children='0',style={'font-size':'40px'}),
-        html.P('TRANSPORT INR',style={"fontWeight": "bold"}),
-        html.Div(id='transportamount', children='0', style={"marginBottom": "10px",'font-size':'40px'})
-    ]),
-    style={"width": "100%",'height':'100%'})
-card_pie_chart=dbc.Card(
-    dbc.CardBody([
-        html.H3('SALES'),
-        dcc.Graph(id='salespiechart',figure={},
-                  style={'height':"400px",'width':'400px'})
-    ])
+    # Create a temporary file to store the credentials
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp:
+        json.dump(creds_dict, temp)
+        temp.flush()
+        credentials_path = temp.name  # Store temp file path
 
-)
-# tab-selection for full and partial dispatched
-tabs2 = dbc.Tabs([
-    dbc.Tab(label="All Dispatched", tab_id="all_dispatched2"),
-    dbc.Tab(label="Partial Dispatched", tab_id="partial_dispatched2"),
-], id="tab_selection2", active_tab="all_dispatched2")
-# this is the card for the selective blocks 
-block_sales_card=dbc.Card(
-    dbc.CardBody([
-        html.P('TOTAL SALES INR :',style={"fontWeight": "bold",'font-size':'20px'}),
-        html.Div(id='Total-block-sales',children='0',style={"marginBottom": "30px","fontWeight": "bold",'font-size':'20px'}),
-        html.P('Total GST INR:',style={"fontWeight": "bold",'font-size':'20px'}),
-        html.Div(id='block-gst',children='0',style={"marginBottom": "30px","fontWeight": "bold",'font-size':'20px'}),
-        html.P('TRANSPORT INR:',style={"fontWeight": "bold",'font-size':'20px'}),
-        html.Div(id='block-transport',children='0',style={"fontWeight": "bold",'font-size':'20px'}),
+    # Use the temporary file instead of a local credentials.json file
+    creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
+else:
+    raise ValueError("GOOGLE_CREDENTIALS environment variable is not set.")
+# importing the recovery data
+client=gspread.authorize(creds)
+recovery_sheet_id="1lGNiK4_L2r8ZOE1slGfC0ZaPRBsVq8GwNW5N4zkRgj4"
+sheet=client.open_by_key(recovery_sheet_id)
+data=sheet.worksheet("MAIN").get_all_records()
+recovery_df=pd.DataFrame(data)
+recovery_df['BLOCK NO'] = recovery_df['BLOCK NO'].astype(str)
+#importing the costing and production data 
+production_sheet_id="1NvnuOaY8ZAZO_vgZhgessJO5-X6tUbEx0f_ybRJ-3U4"
+cost_sheet_id="1iONtXc1AGdatKP9fQDBOKOhVZTUgDkw6Y7_uhNYCJcg"
+production_sheet=client.open_by_key(production_sheet_id)
+cost_sheet=client.open_by_key(cost_sheet_id)
+costsft=cost_sheet.worksheet("COST PER UNIT").get_all_records()
+cost_df_2=pd.DataFrame(costsft)
+def fetch_sheet_data(sheet_name):
+    data = production_sheet.worksheet(sheet_name).get_all_records()
+    return pd.DataFrame(data)
 
-    ]),
-    style={"width": "100%",'height':'100%'}
-)
-grid2=dag.AgGrid(
-    id="table2",
-    rowData=df2.to_dict("records"),
-    columnDefs=[{"field": i,"cellDataType" : 'text'} for i in df2.columns[[1,2,29,30,31,32,33,34,35]]],
-    # columnDefs=[{"field":'BLOCK NO',"cellDataType" : 'text' }],
+dressing_df_2 = fetch_sheet_data("DRESSING")
+print(dressing_df_2.head(5))
+cutting_df_2 = fetch_sheet_data("CUTTING")
+polishing_df_2 = fetch_sheet_data("POLISHING AND GRINDING")
+epoxy_df_2 = fetch_sheet_data("EPOXY")
+# fetching the purcahase and sales data
+from Function import *
+def recovery_info(df,block_no):
+    pass
+
+
+page2_grid=dag.AgGrid(
+    id="page2grid1",
+    rowData=[],
+    columnDefs=[
+        {
+            "field": i,
+            "width": 110,  # Adjusted width for better fit
+            "cellStyle": {'padding': '0 5px'}  # Reduce internal padding
+        } for i in ["BLOCK NO", "COLOUR", "CUTTING QTY","SLABS","BAL_SLABS","PURCHASE COST","TRANSPORT COST","PROCESS COST","TOTAL","SALES AMOUNT","MARGIN"]
+            
+        
+    ],
     defaultColDef={"filter": True, "sortable": True, "resizable": True},
     className="ag-theme-alpine-dark",
-    dashGridOptions={"pagination": True, "animateRows": False},
-)
-layout = dbc.Container(
-    [dbc.Row(dcc.Dropdown(df2['COLOR NAME'].unique(),multi=True,value=df2['COLOR NAME'].unique()[0:2],id='dropdown1')),
-     tabs2,
-        dbc.Row(
-            [ dbc.Col(card_sales,className="d-flex align-items-stretch" ,style={'margin-bottom': '20px'}),
-            dbc.Col(card_pie_chart,style={'margin-bottom': '20px'}),  # Second card in its own row  # First card in its own row
-    ]),
-    dbc.Row([dbc.Col([
-        dcc.Dropdown(id='blockselection2',placeholder='select the blocks',multi=True,value=df2['BLOCK NO'].unique()[0:3]),
-        block_sales_card]
-
-    ),
-             dbc.Col(dcc.Graph(figure={},id='minigraph2'))]),
-    
-
-    dbc.Row(dcc.Graph(figure={},id='page2chart'),style={
-        # "width": "2000px",  # Set a large width for the graph container
-        "overflow-x": "auto",  # Enable horizontal scrolling
-        "white-space": "nowrap"  # Prevent graph from wrapping
-    }),
-    
-    
-    grid2
-    ],
-    fluid=True
-)
-@callback(
-    Output(component_id='salespiechart',component_property='figure'),
-    Output(component_id='totalamount',component_property='children'),
-    Output(component_id='gstamount',component_property='children'),
-    Output(component_id='transportamount',component_property='children'),
-    Output(component_id='page2chart',component_property='figure'),
-    Output(component_id='blockselection2',component_property='options'),
-    Input(component_id='dropdown1',component_property='value'),
-    Input(component_id='tab_selection2',component_property='active_tab')
-)
-def func(dropdown_value1,selected_tab):
-    dff2=df2[df2['COLOR NAME'].isin(dropdown_value1)]
-    if selected_tab == "all_dispatched2":
-        dff2 = dff2[dff2['BALANCE SLABS'] == 0]  # all dispatched data
-        # print('thiS is for all dispatched',dff2[['BALANCE SLABS','AMOUNT']])
-    else:
-        dff2=dff2[dff2['BALANCE SLABS'] != 0] 
-        # print('this is for partial dispatched',dff2[['BALANCE SLABS','AMOUNT']])
-    amount=round(sum(dff2['AMOUNT']),2)
-    total_sales_amount=round(sum(dff2['TOTAL VALUE']),2)
-    total_gst=round(sum(dff2['GST']),2)
-    page2_blocks_value=dff2['BLOCK NO']
-    total_transport=round(sum(dff2['ADJ TRANSPORT CHARGES PER BLOCK']))
-    fig1=px.pie(values=[amount,total_gst,total_transport],labels=['AMOUNT','GST','TRANSPORT'],hole=0.4,names=['AMOUNT',"GST",'TRANSPORT']).update_layout(template="plotly_dark")
-    histochart=px.histogram(dff2,x=dff2['BLOCK NO'],y=dff2['TOTAL VALUE']).update_layout(template="plotly_dark",xaxis=dict(type='category'))
-    return fig1,total_sales_amount,total_gst,total_transport,histochart,page2_blocks_value
+    dashGridOptions={"pagination": True, "animateRows": False},)
+layout = dbc.Container( [ dbc.Row(dcc.Dropdown(dressing_df_2['COLOUR'].unique(),placeholder="select the colour",multi=True,id="page2colourselect")),
+    dbc.Row(dcc.Dropdown(id='block_selection_page2',placeholder="select the blocks",multi=True)),
+    page2_grid,])
 
 @callback(
-    Output(component_id='Total-block-sales',component_property='children'),
-    Output(component_id='block-gst',component_property='children'),
-    Output(component_id='minigraph2',component_property='figure'),
-    Output(component_id='block-transport',component_property='children'),
-    Input(component_id='blockselection2',component_property='value')
-)
-def blockdropdown(block_value):
-    if not block_value:
-        return "", "", go.Figure(),""
-    # print(block_value,[type(i) for i in block_value ])
-    block_df2=df2[df2['BLOCK NO'].isin(block_value)]
-    # print(block_df)
-    total_sales_amount=round(sum(block_df2['TOTAL VALUE']),2)
-    total_gst=round(sum(block_df2['GST']),2)
-    block_transportation_amount=round(sum(block_df2['ADJ TRANSPORT CHARGES PER BLOCK']),2)
-    page2fig2=px.histogram(block_df2,x=block_df2['BLOCK NO'],y=[block_df2['TOTAL VALUE'],block_df2['GST'],block_df2['ADJ TRANSPORT CHARGES PER BLOCK']])
-    
-    return total_sales_amount,total_gst,page2fig2,block_transportation_amount
+    Output(component_id="block_selection_page2",component_property="options"),
+    Input(component_id="page2colourselect",component_property="value"))
+def updateblock2(colour_name):
+    if not colour_name:
+        return []
+    blocks_no=dressing_df_2[dressing_df_2['COLOUR'].isin(colour_name)]["BLOCK NO"].unique()
+    return blocks_no
+
+@callback(
+    Output(component_id="page2grid1",component_property="rowData"),
+    Input(component_id="block_selection_page2",component_property="value"))
+def update(blocknums):
+    block_columns = ["BLOCK NO", "COLOUR", "CUTTING QTY","SLABS","BAL_SLABS","PURCHASE COST","TRANSPORT COST","PROCESS COST","TOTAL","SALES AMOUNT","MARGIN"]
+    block_sales_df= pd.DataFrame(columns=block_columns)
+    if not blocknums:
+        return pd.DataFrame().to_dict("records")
+    for block in blocknums:
+        block_colour ,dress_price, month=dressing_value(block,dressing_df_2,cost_df_2)
+        if month=="MARCH":
+            month="FEBRUARY"
+        block_cut_qty,block_cut_cost,block_misc_cost,=cutting_value(block,cutting_df_2,cost_df_2,month)
+        block_polish_cost=polishing_value(block,polishing_df_2,cost_df_2,month)
+        block_epoxy_cost=epoxy_value(block,epoxy_df_2,cost_df_2,month)
+        inv_amount,slabs,sales_amount,transport,balance_slabs= purchase_cost(recovery_df,block)
+        print("this is the transport cost showing at page2",transport)
+        pc=dress_price+block_cut_cost+block_misc_cost+block_polish_cost+block_epoxy_cost
+        
+        total_cost=inv_amount+transport+pc
+        if slabs!=0:
+            sales_amount+=(balance_slabs/slabs)*total_cost
+        new_row={
+            "BLOCK NO":block,
+            "COLOUR":block_colour,
+            "CUTTING QTY":round(block_cut_qty,0),
+            "SLABS":slabs,
+            "BAL_SLABS":balance_slabs,
+            "PURCHASE COST":round(inv_amount,0),
+            "TRANSPORT COST":round(transport,0),
+            "PROCESS COST":round(pc,0),
+            "TOTAL":round(total_cost,0),
+            "SALES AMOUNT":round(sales_amount,0),
+            "MARGIN":round(sales_amount-total_cost,0)
+        }
+        block_sales_df=pd.concat([block_sales_df, pd.DataFrame([new_row])], ignore_index=True)
+    return block_sales_df.to_dict('records')
+        
+
+
+
+
+
 

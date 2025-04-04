@@ -1,12 +1,20 @@
 import dash
 import pandas as pd
+import os
+import tempfile
+import json
 from dash import Dash, html, dcc, Input, Output, State, callback, Patch
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 import plotly.graph_objects as go
+import gspread
+from google.oauth2.service_account import Credentials
+
 app = Dash(external_stylesheets=[dbc.themes.CYBORG],use_pages=True,suppress_callback_exceptions=True)
 server=app.server
 # creating the object for side bar
+# fetching the common data for all the pages
+
 SIDEBAR_STYLE = {
     "position": "fixed",
     "top": 0,
