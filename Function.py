@@ -17,7 +17,7 @@ def dressing_value(block, df1, df2):
     def get_cost(item):
         """Fetches cost per SFT safely, returns 0 if not found."""
         cost_series = df2[(df2['MONTH'] == month) & (df2['ITEM'] == item)]['COST PER SFT']
-        return cost_series.iloc[0] if not cost_series.empty else 0
+        return cost_series.sum() if not cost_series.empty else 0
 
     # Calculate costs
     price = round(qty * get_cost("MONOWIRE SAW"),0)
@@ -41,9 +41,10 @@ def cutting_value(block, df1, df2, month):
             cost_series = df2[(df2['MONTH'] == month) & (df2['ITEM'] == item_name)]['COST PER SFT']
             # print("this else condition executed:",
                 #   '\n',cost_series)
-        return cost_series.iloc[0] if not cost_series.empty else 0
+        return cost_series.sum() if not cost_series.empty else 0
 
-    misc_cost = round((mws_qty + no_mws_qty) * get_cost(None, "MISC"),0)
+    misc_cost = round((mws_qty + no_mws_qty) * get_cost(item_name=None,process_name="MISC"),0)
+    # print(misc_cost,"misc cost")
     mws_price = mws_qty * get_cost("MULTI WIRE SAW")
     no_mws_price = no_mws_qty * get_cost("CUTTER")
     salary = (mws_qty + no_mws_qty) * get_cost("SALARY")
@@ -67,7 +68,7 @@ def polishing_value(block, df1, df2, month):
     def get_cost(process_name):
         """Fetches cost per SFT safely, returns 0 if not found."""
         cost_series = df2[(df2['MONTH'] == month) & (df2['PROCESS'] == process_name)]['COST PER SFT']
-        return cost_series.iloc[0] if not cost_series.empty else 0
+        return cost_series.sum() if not cost_series.empty else 0
 
     polish_price = polishing_qty * get_cost("POLISHING")
     grinding_price = grinding_qty * get_cost("GRINDING")
@@ -95,9 +96,9 @@ def purchase_cost(recovery_df,block_no):
     
     match = re.search(r'\d+', block_no)
     block=match.group()
-    print("this this the block most probabily the number one","\n",block)
+    # print("this this the block most probabily the number one","\n",block)
     filtered_df = recovery_df[recovery_df['BLOCK NO'].str.contains(rf'^{block}(?:[-\s]?[A-Za-z0-9]+)?$', na=False)]
-    print("This is the filtered Dataframe ",'\n',filtered_df)
+    # print("This is the filtered Dataframe ",'\n',filtered_df)
     columns_to_convert = [
     "INV AMOUNT WITHOUT GST",
     "SLABS",
@@ -109,8 +110,8 @@ def purchase_cost(recovery_df,block_no):
     sums=filtered_df[
     columns_to_convert
 ].sum(axis=0)
-    print(sums)
-    print(filtered_df[columns_to_convert])
+    # print(sums)
+    # print(filtered_df[columns_to_convert])
     
     return tuple(sums)
     

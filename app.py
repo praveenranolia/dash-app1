@@ -12,8 +12,6 @@ from google.oauth2.service_account import Credentials
 
 app = Dash(external_stylesheets=[dbc.themes.CYBORG],use_pages=True,suppress_callback_exceptions=True)
 server=app.server
-# creating the object for side bar
-# fetching the common data for all the pages
 
 SIDEBAR_STYLE = {
     "position": "fixed",
